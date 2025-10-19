@@ -52,6 +52,49 @@ class SimplePuzzleApp {
         // Show solution button
         const showSolutionBtn = document.getElementById('showSolution');
         showSolutionBtn.addEventListener('click', () => this.toggleShowSolution());
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+    }
+
+    handleKeyDown(e) {
+        if (!this.selectedPiece) return;
+
+        const moveDistance = 1 * this.zoomLevel;
+        const rotationDegrees = 15;
+
+        switch(e.key) {
+            case 'ArrowUp':
+                e.preventDefault();
+                this.selectedPiece.currentY -= moveDistance;
+                this.updatePieceZoom(this.selectedPiece);
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                this.selectedPiece.currentY += moveDistance;
+                this.updatePieceZoom(this.selectedPiece);
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                if (e.shiftKey) {
+                    this.selectedPiece.rotation -= rotationDegrees;
+                    this.updatePieceZoom(this.selectedPiece);
+                } else {
+                    this.selectedPiece.currentX -= moveDistance;
+                    this.updatePieceZoom(this.selectedPiece);
+                }
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                if (e.shiftKey) {
+                    this.selectedPiece.rotation += rotationDegrees;
+                    this.updatePieceZoom(this.selectedPiece);
+                } else {
+                    this.selectedPiece.currentX += moveDistance;
+                    this.updatePieceZoom(this.selectedPiece);
+                }
+                break;
+        }
     }
 
     async loadPuzzleFromDirectory(directory) {
@@ -257,6 +300,15 @@ class SimplePuzzleApp {
         const showBtn = document.getElementById('showSolution');
 
         if (!this.isShowingSolution) {
+            // Store current state before showing solution
+            this.preSolutionState = this.pieces.map(piece => ({
+                file: piece.file,
+                currentX: piece.currentX,
+                currentY: piece.currentY,
+                rotation: piece.rotation
+            }));
+            console.log('Pre-solution state stored:', this.preSolutionState);
+
             // Show the solution: move pieces to target positions
             console.log('Showing solution...');
             this.pieces.forEach(piece => {
@@ -274,15 +326,15 @@ class SimplePuzzleApp {
             document.getElementById('status').style.color = 'green';
 
         } else {
-            // Hide the solution: restore initial positions
-            console.log('Hiding solution, restoring initial state...');
-            if (this.initialState) {
+            // Hide the solution: restore positions from when solution was shown
+            console.log('Hiding solution, restoring pre-solution state...');
+            if (this.preSolutionState) {
                 this.pieces.forEach(piece => {
-                    const initialState = this.initialState.find(state => state.file === piece.file);
-                    if (initialState) {
-                        piece.currentX = initialState.currentX;
-                        piece.currentY = initialState.currentY;
-                        piece.rotation = initialState.rotation;
+                    const preSolutionState = this.preSolutionState.find(state => state.file === piece.file);
+                    if (preSolutionState) {
+                        piece.currentX = preSolutionState.currentX;
+                        piece.currentY = preSolutionState.currentY;
+                        piece.rotation = preSolutionState.rotation;
                         this.updatePieceZoom(piece);
                     }
                 });
