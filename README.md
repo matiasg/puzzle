@@ -8,7 +8,7 @@ A web-based puzzle game where users arrange and rotate SVG pieces to solve puzzl
 - **Interactive piece manipulation**:
   - Click to select pieces
   - Drag and drop to move pieces
-  - Rotate pieces by ±5 degrees using buttons or keyboard shortcuts (Q/E)
+  - Rotate pieces by ±15 degrees using buttons or keyboard shortcuts (Q/E)
 - **Solution checking**: Validates if pieces are in the correct position and rotation
 - **Visual feedback**: Selected pieces are highlighted with a glow effect
 - **Responsive design**: Works on desktop and mobile devices

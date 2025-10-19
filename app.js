@@ -24,8 +24,8 @@ class SimplePuzzleApp {
         // Rotation buttons
         const rotateLeftBtn = document.getElementById('rotateLeft');
         const rotateRightBtn = document.getElementById('rotateRight');
-        rotateLeftBtn.addEventListener('click', () => this.rotateSelected(-5));
-        rotateRightBtn.addEventListener('click', () => this.rotateSelected(5));
+        rotateLeftBtn.addEventListener('click', () => this.rotateSelected(-15));
+        rotateRightBtn.addEventListener('click', () => this.rotateSelected(15));
 
         // Directory input
         const directoryInput = document.getElementById('directoryInput');
@@ -140,7 +140,7 @@ class SimplePuzzleApp {
             targetY: pieceInfo.y,
             currentX: Math.round(Math.random() * 400 + 50), // Random integer position
             currentY: Math.round(Math.random() * 300 + 50),
-            rotation: Math.floor(Math.random() * 8) * 5, // Random rotation in multiples of 5
+            rotation: Math.floor(Math.random() * 12) * 15, // Random rotation in multiples of 5
             element: null
         };
 
@@ -304,8 +304,8 @@ class SimplePuzzleApp {
     }
 
     zoom(delta) {
-        // Calculate new zoom level (between 0.5 and 2.0)
-        const newZoom = Math.max(0.5, Math.min(2.0, this.zoomLevel + delta));
+        // Calculate new zoom level (between 0.2 and 10.0)
+        const newZoom = Math.max(0.2, Math.min(10.0, this.zoomLevel + delta));
 
         if (newZoom !== this.zoomLevel) {
             this.zoomLevel = newZoom;
