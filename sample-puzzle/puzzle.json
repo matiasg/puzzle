@@ -1,0 +1,32 @@
+[
+    {
+        "file": "piece1.svg",
+        "x": 200,
+        "y": 150
+    },
+    {
+        "file": "piece2.svg",
+        "x": 300,
+        "y": 150
+    },
+    {
+        "file": "piece3.svg",
+        "x": 400,
+        "y": 150
+    },
+    {
+        "file": "piece4.svg",
+        "x": 200,
+        "y": 250
+    },
+    {
+        "file": "piece5.svg",
+        "x": 300,
+        "y": 250
+    },
+    {
+        "file": "piece6.svg",
+        "x": 400,
+        "y": 250
+    }
+]
