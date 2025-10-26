@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Puzzle Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="file"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        input[type="number"] {
+            width: 100px;
+        }
+
+        .grid-inputs {
+            display: flex;
+            gap: 20px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .output {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .output h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .download-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .download-link {
+            display: inline-block;
+            padding: 8px 12px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .download-link:hover {
+            background-color: #218838;
+        }
+
+        .progress {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧩 Web Puzzle Generator</h1>
+
+        <div class="form-group">
+            <label for="imageInput">Select Image:</label>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <div class="form-group">
+            <label>Puzzle Grid Size:</label>
+            <div class="grid-inputs">
+                <div>
+                    <label for="columns">Columns:</label>
+                    <input type="number" id="columns" value="3" min="2" max="10">
+                </div>
+                <div>
+                    <label for="rows">Rows:</label>
+                    <input type="number" id="rows" value="2" min="2" max="10">
+                </div>
+            </div>
+        </div>
+
+        <button id="generateBtn" disabled>Generate Puzzle</button>
+
+        <div class="preview">
+            <img id="imagePreview" style="display: none;">
+        </div>
+
+        <div id="progress" class="progress" style="display: none;"></div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="success" class="success" style="display: none;"></div>
+
+        <div id="output" class="output" style="display: none;">
+            <h3>📥 Download Puzzle Files</h3>
+            <p><strong>puzzle.json</strong> - Puzzle configuration file</p>
+            <div id="downloadLinks" class="download-links"></div>
+        </div>
+    </div>
+
+    <script>
+        class WebPuzzleGenerator {
+            constructor() {
+                this.imageFile = null;
+                this.imageData = null;
+                this.pieceWidth = 100;
+                this.pieceHeight = 100;
+                this.tabSize = 20;
+                this.init();
+            }
+
+            init() {
+                const imageInput = document.getElementById('imageInput');
+                const generateBtn = document.getElementById('generateBtn');
+
+                imageInput.addEventListener('change', (e) => this.handleImageSelect(e));
+                generateBtn.addEventListener('click', () => this.generatePuzzle());
+            }
+
+            handleImageSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                this.imageFile = file;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.imageData = e.target.result;
+                    this.showPreview();
+                    document.getElementById('generateBtn').disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            showPreview() {
+                const preview = document.getElementById('imagePreview');
+                preview.src = this.imageData;
+                preview.style.display = 'block';
+            }
+
+            async generatePuzzle() {
+                if (!this.imageData) return;
+
+                const cols = parseInt(document.getElementById('columns').value);
+                const rows = parseInt(document.getElementById('rows').value);
+
+                this.showProgress(`Generating ${cols}×${rows} puzzle...`);
+                this.hideMessages();
+
+                try {
+                    // Load image
+                    const img = new Image();
+                    await new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.src = this.imageData;
+                    });
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    canvas.width = cols * this.pieceWidth;
+                    canvas.height = rows * this.pieceHeight;
+
+                    // Draw and scale image
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    const pieces = [];
+
+                    // Generate pieces
+                    for (let row = 0; row < rows; row++) {
+                        for (let col = 0; col < cols; col++) {
+                            const pieceIndex = row * cols + col;
+                            this.showProgress(`Creating piece ${pieceIndex + 1} of ${cols * rows}...`);
+
+                            const piece = await this.createPiece(ctx, col, row, pieceIndex, cols, rows);
+                            pieces.push(piece);
+                        }
+                    }
+
+                    // Generate downloads
+                    this.generateDownloads(pieces, cols, rows);
+                    this.showSuccess(`✅ Puzzle generated successfully! ${pieces.length} pieces created.`);
+
+                } catch (error) {
+                    this.showError(`Error: ${error.message}`);
+                    console.error('Generation error:', error);
+                }
+            }
+
+            async createPiece(sourceCtx, col, row, index, cols, rows) {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.pieceWidth;
+                canvas.height = this.pieceHeight;
+                const ctx = canvas.getContext('2d');
+
+                const x = col * this.pieceWidth;
+                const y = row * this.pieceHeight;
+
+                // Save the context state
+                ctx.save();
+
+                // Create clipping path
+                ctx.beginPath();
+                ctx.rect(0, 0, this.pieceWidth, this.pieceHeight);
+
+                // Add tabs and blanks
+                const hasTopTab = row > 0 && (index + row) % 2 === 0;
+                const hasRightTab = col < cols - 1 && (index + col) % 2 === 1;
+                const hasBottomTab = row < rows - 1 && (index + row) % 2 === 1;
+                const hasLeftTab = col > 0 && (index + col) % 2 === 0;
+
+                // Draw tabs
+                if (hasTopTab) this.drawTab(ctx, 'top', true);
+                else if (row > 0) this.drawTab(ctx, 'top', false);
+
+                if (hasRightTab) this.drawTab(ctx, 'right', true);
+                else if (col < cols - 1) this.drawTab(ctx, 'right', false);
+
+                if (hasBottomTab) this.drawTab(ctx, 'bottom', true);
+                else if (row < rows - 1) this.drawTab(ctx, 'bottom', false);
+
+                if (hasLeftTab) this.drawTab(ctx, 'left', true);
+                else if (col > 0) this.drawTab(ctx, 'left', false);
+
+                ctx.clip();
+
+                // Draw the image portion
+                ctx.drawImage(sourceCtx.canvas, x, y, this.pieceWidth, this.pieceHeight, 0, 0, this.pieceWidth, this.pieceHeight);
+
+                ctx.restore();
+
+                // Add border
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Add piece number
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 1;
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.strokeText((index + 1).toString(), this.pieceWidth/2, this.pieceHeight/2);
+                ctx.fillText((index + 1).toString(), this.pieceWidth/2, this.pieceHeight/2);
+
+                return {
+                    file: `piece${index + 1}.svg`,
+                    x: x + this.pieceWidth / 2,
+                    y: y + this.pieceHeight / 2,
+                    svgData: this.canvasToSVG(canvas, index + 1)
+                };
+            }
+
+            drawTab(ctx, side, isTab) {
+                const tabWidth = this.tabSize;
+                const tabHeight = this.tabSize / 2;
+                const centerX = this.pieceWidth / 2;
+                const centerY = this.pieceHeight / 2;
+
+                ctx.save();
+
+                if (side === 'top') {
+                    const tabX = centerX;
+                    if (isTab) {
+                        ctx.moveTo(tabX - tabWidth/2, 0);
+                        ctx.quadraticCurveTo(tabX - tabWidth/2, -tabHeight, tabX, -tabHeight);
+                        ctx.quadraticCurveTo(tabX + tabWidth/2, -tabHeight, tabX + tabWidth/2, 0);
+                    } else {
+                        ctx.moveTo(tabX - tabWidth/2, 0);
+                        ctx.quadraticCurveTo(tabX - tabWidth/2, tabHeight, tabX, tabHeight);
+                        ctx.quadraticCurveTo(tabX + tabWidth/2, tabHeight, tabX + tabWidth/2, 0);
+                    }
+                } else if (side === 'right') {
+                    const tabY = centerY;
+                    if (isTab) {
+                        ctx.moveTo(this.pieceWidth, tabY - tabWidth/2);
+                        ctx.quadraticCurveTo(this.pieceWidth + tabHeight, tabY - tabWidth/2, this.pieceWidth + tabHeight, tabY);
+                        ctx.quadraticCurveTo(this.pieceWidth + tabHeight, tabY + tabWidth/2, this.pieceWidth, tabY + tabWidth/2);
+                    } else {
+                        ctx.moveTo(this.pieceWidth, tabY - tabWidth/2);
+                        ctx.quadraticCurveTo(this.pieceWidth - tabHeight, tabY - tabWidth/2, this.pieceWidth - tabHeight, tabY);
+                        ctx.quadraticCurveTo(this.pieceWidth - tabHeight, tabY + tabWidth/2, this.pieceWidth, tabY + tabWidth/2);
+                    }
+                } else if (side === 'bottom') {
+                    const tabX = centerX;
+                    if (isTab) {
+                        ctx.moveTo(tabX + tabWidth/2, this.pieceHeight);
+                        ctx.quadraticCurveTo(tabX + tabWidth/2, this.pieceHeight + tabHeight, tabX, this.pieceHeight + tabHeight);
+                        ctx.quadraticCurveTo(tabX - tabWidth/2, this.pieceHeight + tabHeight, tabX - tabWidth/2, this.pieceHeight);
+                    } else {
+                        ctx.moveTo(tabX + tabWidth/2, this.pieceHeight);
+                        ctx.quadraticCurveTo(tabX + tabWidth/2, this.pieceHeight - tabHeight, tabX, this.pieceHeight - tabHeight);
+                        ctx.quadraticCurveTo(tabX - tabWidth/2, this.pieceHeight - tabHeight, tabX - tabWidth/2, this.pieceHeight);
+                    }
+                } else if (side === 'left') {
+                    const tabY = centerY;
+                    if (isTab) {
+                        ctx.moveTo(0, tabY + tabWidth/2);
+                        ctx.quadraticCurveTo(-tabHeight, tabY + tabWidth/2, -tabHeight, tabY);
+                        ctx.quadraticCurveTo(-tabHeight, tabY - tabWidth/2, 0, tabY - tabWidth/2);
+                    } else {
+                        ctx.moveTo(0, tabY + tabWidth/2);
+                        ctx.quadraticCurveTo(tabHeight, tabY + tabWidth/2, tabHeight, tabY);
+                        ctx.quadraticCurveTo(tabHeight, tabY - tabWidth/2, 0, tabY - tabWidth/2);
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            canvasToSVG(canvas, pieceNumber) {
+                const dataURL = canvas.toDataURL();
+                return `<svg width="${this.pieceWidth}" height="${this.pieceHeight}" viewBox="0 0 ${this.pieceWidth} ${this.pieceHeight}" xmlns="http://www.w3.org/2000/svg">
+    <image href="${dataURL}" x="0" y="0" width="${this.pieceWidth}" height="${this.pieceHeight}"/>
+</svg>`;
+            }
+
+            generateDownloads(pieces, cols, rows) {
+                const outputDiv = document.getElementById('output');
+                const linksDiv = document.getElementById('downloadLinks');
+
+                // Clear previous downloads
+                linksDiv.innerHTML = '';
+
+                // Create puzzle.json
+                const puzzleData = pieces.map(piece => ({
+                    file: piece.file,
+                    x: piece.x,
+                    y: piece.y
+                }));
+
+                const puzzleJSON = JSON.stringify(puzzleData, null, 2);
+                this.createDownloadLink('puzzle.json', puzzleJSON, 'application/json');
+
+                // Create piece SVGs
+                pieces.forEach(piece => {
+                    this.createDownloadLink(piece.file, piece.svgData, 'image/svg+xml');
+                });
+
+                outputDiv.style.display = 'block';
+            }
+
+            createDownloadLink(filename, content, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.className = 'download-link';
+                link.textContent = filename;
+
+                link.onclick = () => {
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                };
+
+                document.getElementById('downloadLinks').appendChild(link);
+            }
+
+            showProgress(message) {
+                const progress = document.getElementById('progress');
+                progress.textContent = message;
+                progress.style.display = 'block';
+            }
+
+            showError(message) {
+                const error = document.getElementById('error');
+                error.textContent = message;
+                error.style.display = 'block';
+                document.getElementById('progress').style.display = 'none';
+            }
+
+            showSuccess(message) {
+                const success = document.getElementById('success');
+                success.textContent = message;
+                success.style.display = 'block';
+                document.getElementById('progress').style.display = 'none';
+            }
+
+            hideMessages() {
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('success').style.display = 'none';
+                document.getElementById('progress').style.display = 'none';
+            }
+        }
+
+        // Initialize the generator
+        document.addEventListener('DOMContentLoaded', () => {
+            new WebPuzzleGenerator();
+        });
+    </script>
+</body>
+</html>

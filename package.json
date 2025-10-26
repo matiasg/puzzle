@@ -1,0 +1,17 @@
+{
+  "name": "puzzle-generator",
+  "version": "1.0.0",
+  "description": "Generate jigsaw puzzle pieces from images",
+  "main": "puzzle-generator.js",
+  "scripts": {
+    "start": "node puzzle-generator.js",
+    "test": "node test-generator.js"
+  },
+  "dependencies": {
+    "canvas": "^2.11.2",
+    "sharp": "^0.33.0"
+  },
+  "keywords": ["puzzle", "image", "generator", "jigsaw"],
+  "author": "",
+  "license": "MIT"
+}

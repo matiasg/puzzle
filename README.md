@@ -1,4 +1,40 @@
-# Puzzle App
+# Puzzle Generator & App
+
+A comprehensive puzzle system that includes both a generator to create jigsaw puzzle pieces from images and a web-based puzzle game to solve them.
+
+## Puzzle Generator
+
+**NEW**: Convert your images into realistic jigsaw puzzle pieces!
+
+### Features
+- **Multiple Input Formats**: Supports PNG, JPG, and SVG images
+- **Realistic Puzzle Pieces**: Generates pieces with jigsaw-style tabs and blanks
+- **Web Interface**: Browser-based generator for easy use
+- **Command Line Tool**: Node.js script for batch processing
+- **Compatible Output**: Generates files that work with the puzzle app
+
+### Quick Start (Web Interface)
+
+1. Open `web-generator.html` in your browser
+2. Select an image file
+3. Choose the puzzle grid size (columns × rows)
+4. Click "Generate Puzzle"
+5. Download the generated puzzle files
+
+### Command Line Usage
+
+```bash
+# Install dependencies
+npm install
+
+# Generate puzzle pieces
+node puzzle-generator.js <input-image> <columns> <rows> <output-dir>
+
+# Example: Create a 4×3 puzzle
+node puzzle-generator.js photo.jpg 4 3 my-puzzle
+```
+
+## Puzzle App
 
 A web-based puzzle game where users arrange and rotate SVG pieces to solve puzzles.
 
