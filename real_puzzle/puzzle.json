@@ -1,0 +1,62 @@
+[
+  {
+    "x": 50,
+    "y": 50,
+    "file": "piece0.svg"
+  },
+  {
+    "x": 50,
+    "y": 150,
+    "file": "piece4.svg"
+  },
+  {
+    "x": 50,
+    "y": 250,
+    "file": "piece8.svg"
+  },
+  {
+    "x": 150,
+    "y": 50,
+    "file": "piece1.svg"
+  },
+  {
+    "x": 150,
+    "y": 150,
+    "file": "piece5.svg"
+  },
+  {
+    "x": 150,
+    "y": 250,
+    "file": "piece9.svg"
+  },
+  {
+    "x": 250,
+    "y": 50,
+    "file": "piece2.svg"
+  },
+  {
+    "x": 250,
+    "y": 150,
+    "file": "piece6.svg"
+  },
+  {
+    "x": 250,
+    "y": 250,
+    "file": "piece10.svg"
+  },
+  {
+    "x": 350,
+    "y": 50,
+    "file": "piece3.svg"
+  },
+  {
+    "x": 350,
+    "y": 150,
+    "file": "piece7.svg"
+  },
+  {
+    "x": 350,
+    "y": 250,
+    "file": "piece11.svg"
+  }
+]
