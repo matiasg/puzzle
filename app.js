@@ -15,7 +15,6 @@ class SimplePuzzleApp {
     init() {
         // Load button
         const loadBtn = document.getElementById('loadPuzzle');
-        loadBtn.addEventListener('click', () => this.loadPuzzle());
 
         // Check button
         const checkBtn = document.getElementById('checkSolution');
@@ -198,7 +197,90 @@ class SimplePuzzleApp {
             element.style.top = piece.currentY + 'px';
             element.style.cursor = 'pointer';
             element.style.border = '2px solid transparent';
-            element.innerHTML = svgContent;
+
+            // Parse SVG content properly to handle complex SVG structures
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
+
+            // Check for parsing errors
+            const parserError = svgDoc.querySelector('parsererror');
+            if (parserError) {
+                console.warn(`SVG parsing warning for ${pieceInfo.file}, falling back to innerHTML`);
+                element.innerHTML = svgContent;
+            } else {
+                // Create a unique prefix for this piece to avoid ID conflicts
+                const pieceId = pieceInfo.file.replace(/\.[^/.]+$/, ""); // Remove extension
+                const uniquePrefix = `piece_${pieceId}_`;
+
+                // Clone the SVG document to modify it
+                const modifiedSvgDoc = svgDoc.cloneNode(true);
+
+                // Make all IDs unique to avoid conflicts between pieces
+                const elementsWithIds = modifiedSvgDoc.querySelectorAll('[id]');
+                elementsWithIds.forEach(el => {
+                    const oldId = el.getAttribute('id');
+                    el.setAttribute('id', uniquePrefix + oldId);
+                });
+
+                // Update all references to IDs (href, url(), etc.)
+                const elementsWithReferences = modifiedSvgDoc.querySelectorAll('[href], [clip-path], [fill], [stroke], [mask], [filter]');
+                elementsWithReferences.forEach(el => {
+                    // Update href attributes
+                    if (el.hasAttribute('href')) {
+                        const href = el.getAttribute('href');
+                        if (href.startsWith('#')) {
+                            el.setAttribute('href', '#' + uniquePrefix + href.substring(1));
+                        }
+                    }
+
+                    // Update clip-path attributes
+                    if (el.hasAttribute('clip-path')) {
+                        const clipPath = el.getAttribute('clip-path');
+                        const urlMatch = clipPath.match(/url\(#([^)]+)\)/);
+                        if (urlMatch) {
+                            el.setAttribute('clip-path', `url(#${uniquePrefix + urlMatch[1]})`);
+                        }
+                    }
+
+                    // Update style references
+                    ['fill', 'stroke', 'mask', 'filter'].forEach(attr => {
+                        if (el.hasAttribute(attr)) {
+                            const value = el.getAttribute(attr);
+                            const urlMatch = value.match(/url\(#([^)]+)\)/);
+                            if (urlMatch) {
+                                el.setAttribute(attr, `url(#${uniquePrefix + urlMatch[1]})`);
+                            }
+                        }
+                    });
+                });
+
+                // Create a wrapper div for the SVG to ensure proper rendering
+                const svgWrapper = document.createElement('div');
+                svgWrapper.style.width = '100%';
+                svgWrapper.style.height = '100%';
+                svgWrapper.style.overflow = 'visible';
+
+                // Import and append the modified SVG element
+                const svgElement = modifiedSvgDoc.documentElement;
+                if (svgElement && svgElement.tagName.toLowerCase() === 'svg') {
+                    // Ensure proper SVG namespace and attributes
+                    svgElement.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                    svgElement.style.width = '100%';
+                    svgElement.style.height = '100%';
+                    svgElement.style.display = 'block';
+
+                    // Import the SVG into the main document
+                    const importedSvg = document.importNode(svgElement, true);
+                    svgWrapper.appendChild(importedSvg);
+                    element.appendChild(svgWrapper);
+
+                    console.log(`✓ Successfully processed ${pieceInfo.file} with unique IDs`);
+                } else {
+                    // Fallback to innerHTML if SVG element not found
+                    console.warn(`Could not extract SVG element from ${pieceInfo.file}, using innerHTML`);
+                    element.innerHTML = svgContent;
+                }
+            }
 
             // Set element reference first
             piece.element = element;

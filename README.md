@@ -9,6 +9,8 @@ A comprehensive puzzle system that includes both a generator to create jigsaw pu
 ### Features
 - **Multiple Input Formats**: Supports PNG, JPG, and SVG images
 - **Realistic Puzzle Pieces**: Generates pieces with jigsaw-style tabs and blanks
+- **Perfect Piece Matching**: Adjacent pieces have complementary tab/blank patterns
+- **Optional Piece Numbers**: Control whether pieces show numbers (default: off)
 - **Web Interface**: Browser-based generator for easy use
 - **Command Line Tool**: Node.js script for batch processing
 - **Compatible Output**: Generates files that work with the puzzle app
@@ -18,8 +20,9 @@ A comprehensive puzzle system that includes both a generator to create jigsaw pu
 1. Open `web-generator.html` in your browser
 2. Select an image file
 3. Choose the puzzle grid size (columns × rows)
-4. Click "Generate Puzzle"
-5. Download the generated puzzle files
+4. Optional: Check "Show piece numbers" for numbered pieces
+5. Click "Generate Puzzle"
+6. Download the generated puzzle files
 
 ### Command Line Usage
 
@@ -28,10 +31,13 @@ A comprehensive puzzle system that includes both a generator to create jigsaw pu
 npm install
 
 # Generate puzzle pieces
-node puzzle-generator.js <input-image> <columns> <rows> <output-dir>
+node puzzle-generator.js <input-image> <columns> <rows> <output-dir> [show-numbers]
 
-# Example: Create a 4×3 puzzle
+# Example: Create a 4×3 puzzle (no numbers by default)
 node puzzle-generator.js photo.jpg 4 3 my-puzzle
+
+# Example: Create a 4×3 puzzle with numbers
+node puzzle-generator.js photo.jpg 4 3 my-puzzle true
 ```
 
 ## Puzzle App
