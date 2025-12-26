@@ -7,38 +7,22 @@ A comprehensive puzzle system that includes both a generator to create jigsaw pu
 **NEW**: Convert your images into realistic jigsaw puzzle pieces!
 
 ### Features
-- **Multiple Input Formats**: Supports PNG, JPG, and SVG images
+- **Web Interface**: Browser-based generator for easy use
+- **Multiple Input Formats**: Supports PNG, JPG, and other image formats
 - **Realistic Puzzle Pieces**: Generates pieces with jigsaw-style tabs and blanks
 - **Perfect Piece Matching**: Adjacent pieces have complementary tab/blank patterns
 - **Optional Piece Numbers**: Control whether pieces show numbers (default: off)
-- **Web Interface**: Browser-based generator for easy use
-- **Command Line Tool**: Node.js script for batch processing
+- **One-Click Download**: Download all puzzle files as a convenient ZIP archive
 - **Compatible Output**: Generates files that work with the puzzle app
 
-### Quick Start (Web Interface)
+### Quick Start
 
 1. Open `web-generator.html` in your browser
 2. Select an image file
 3. Choose the puzzle grid size (columns × rows)
 4. Optional: Check "Show piece numbers" for numbered pieces
 5. Click "Generate Puzzle"
-6. Download the generated puzzle files
-
-### Command Line Usage
-
-```bash
-# Install dependencies
-npm install
-
-# Generate puzzle pieces
-node puzzle-generator.js <input-image> <columns> <rows> <output-dir> [show-numbers]
-
-# Example: Create a 4×3 puzzle (no numbers by default)
-node puzzle-generator.js photo.jpg 4 3 my-puzzle
-
-# Example: Create a 4×3 puzzle with numbers
-node puzzle-generator.js photo.jpg 4 3 my-puzzle true
-```
+6. Download the generated puzzle files as a ZIP
 
 ## Puzzle App
 
@@ -50,10 +34,13 @@ A web-based puzzle game where users arrange and rotate SVG pieces to solve puzzl
 - **Interactive piece manipulation**:
   - Click to select pieces
   - Drag and drop to move pieces
-  - Rotate pieces by ±15 degrees using buttons or keyboard shortcuts (Q/E)
+  - Rotate pieces by ±15 degrees using buttons or Shift+click for 90 degrees
+  - Mouse wheel zoom centered on cursor position
+  - Keyboard controls: arrows to move, Ctrl+arrows to rotate
+- **Solution modes**: Show hint (1.5x offset), show solution, or reset to play
 - **Solution checking**: Validates if pieces are in the correct position and rotation
-- **Visual feedback**: Selected pieces are highlighted with a glow effect
-- **Responsive design**: Works on desktop and mobile devices
+- **Visual feedback**: Selected pieces are highlighted
+- **Responsive design**: Puzzle container adapts to window size (up to 1000x1000)
 
 ## How to Use
 
@@ -79,13 +66,11 @@ python -m SimpleHTTPServer 8000
 npx http-server -p 8000
 ```
 
-4. **Load a puzzle**: Click "Load Puzzle" and choose one of two methods:
-   - **Method 1**: Enter the directory path (e.g., `sample-puzzle`)
-   - **Method 2**: Upload `puzzle.json` and all SVG files manually
+4. **Load a puzzle**: Click "Load Puzzle" and enter the directory path (e.g., `sample-puzzle`)
 5. **Play the puzzle**:
    - Click on a piece to select it
    - Drag pieces to move them around
-   - Use the rotation buttons or Q/E keys to rotate the selected piece
+   - Use rotation buttons or keyboard shortcuts
    - Click "Check Solution" to see if the puzzle is solved
 
 ### Testing with the Sample Puzzle
@@ -134,9 +119,13 @@ Each object in the array represents a puzzle piece with:
 ## Controls
 
 - **Mouse/Touch**: Click/tap to select, drag to move
-- **Q**: Rotate selected piece -5 degrees
-- **E**: Rotate selected piece +5 degrees
-- **Buttons**: Use the control buttons for rotation and checking solutions
+- **Mouse wheel**: Zoom in/out (zooms centered on cursor)
+- **Arrow keys**: Move selected piece by 1px (× zoom level)
+- **Shift + Arrow keys**: Move selected piece by 10px (× zoom level)
+- **Ctrl + Arrow Left/Right**: Rotate selected piece by 15 degrees
+- **Ctrl + Shift + Arrow Left/Right**: Rotate selected piece by 90 degrees
+- **Rotate buttons**: Click for ±15°, Shift+click for ±90°
+- **Show Hint button**: Cycles through hint → show solution → reset
 
 ## Solution Criteria
 
@@ -156,22 +145,8 @@ This app works in modern browsers that support:
 - SVG rendering
 - Touch events (for mobile)
 
-## Loading Methods
-
-### Method 1: Server Directory (Recommended)
-- Use the `serve.sh` script or start your own HTTP server
-- Enter the directory path relative to the server root (e.g., `sample-puzzle`)
-- The app will automatically load `puzzle.json` and all SVG files from the directory
-
-### Method 2: Manual File Upload
-- Upload `puzzle.json` using the file input
-- Select all SVG files using the multi-file input
-- Works even when opening `index.html` directly from the file system
-- No server required
-
 ## Technical Notes
 
-- The app supports both server-based directory loading and manual file upload
-- Method 1 requires a web server due to browser security restrictions
-- Method 2 uses the File API and works without a server
-- For the best experience, use the provided server script or start your own HTTP server
+- The app requires a web server due to browser security restrictions with local file access
+- Use the provided server script or start your own HTTP server
+- Generated puzzle files from the web generator can be extracted and placed in a directory for loading
