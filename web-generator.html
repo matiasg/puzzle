@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Puzzle Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -100,28 +101,6 @@
             color: #333;
         }
 
-        .download-links {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .download-link {
-            display: inline-block;
-            padding: 8px 12px;
-            background-color: #28a745;
-            color: white;
-            text-decoration: none;
-            border-radius: 3px;
-            font-size: 12px;
-            text-align: center;
-        }
-
-        .download-link:hover {
-            background-color: #218838;
-        }
-
         .progress {
             margin-top: 20px;
             text-align: center;
@@ -171,6 +150,15 @@
             </div>
         </div>
 
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="showNumbers"> Show piece numbers
+            </label>
+            <small style="display: block; color: #666; margin-top: 5px;">
+                Display numbers on puzzle pieces for easier identification
+            </small>
+        </div>
+
         <button id="generateBtn" disabled>Generate Puzzle</button>
 
         <div class="preview">
@@ -183,8 +171,8 @@
 
         <div id="output" class="output" style="display: none;">
             <h3>📥 Download Puzzle Files</h3>
-            <p><strong>puzzle.json</strong> - Puzzle configuration file</p>
-            <div id="downloadLinks" class="download-links"></div>
+            <p><strong>All files</strong> - Puzzle configuration and all piece SVGs</p>
+            <button id="downloadAllBtn" style="margin-top: 10px;">📦 Download All Files (ZIP)</button>
         </div>
     </div>
 
@@ -196,6 +184,7 @@
                 this.pieceWidth = 100;
                 this.pieceHeight = 100;
                 this.tabSize = 20;
+                this.tabPattern = null; // Will store consistent pattern
                 this.init();
             }
 
@@ -233,9 +222,13 @@
 
                 const cols = parseInt(document.getElementById('columns').value);
                 const rows = parseInt(document.getElementById('rows').value);
+                const showNumbers = document.getElementById('showNumbers').checked;
 
                 this.showProgress(`Generating ${cols}×${rows} puzzle...`);
                 this.hideMessages();
+
+                // Generate consistent tab pattern
+                this.tabPattern = this.generateTabPattern(cols, rows);
 
                 try {
                     // Load image
@@ -262,7 +255,7 @@
                             const pieceIndex = row * cols + col;
                             this.showProgress(`Creating piece ${pieceIndex + 1} of ${cols * rows}...`);
 
-                            const piece = await this.createPiece(ctx, col, row, pieceIndex, cols, rows);
+                            const piece = await this.createPiece(ctx, col, row, pieceIndex, cols, rows, showNumbers);
                             pieces.push(piece);
                         }
                     }
@@ -277,7 +270,7 @@
                 }
             }
 
-            async createPiece(sourceCtx, col, row, index, cols, rows) {
+            async createPiece(sourceCtx, col, row, index, cols, rows, showNumbers) {
                 const canvas = document.createElement('canvas');
                 canvas.width = this.pieceWidth;
                 canvas.height = this.pieceHeight;
@@ -293,11 +286,12 @@
                 ctx.beginPath();
                 ctx.rect(0, 0, this.pieceWidth, this.pieceHeight);
 
-                // Add tabs and blanks
-                const hasTopTab = row > 0 && (index + row) % 2 === 0;
-                const hasRightTab = col < cols - 1 && (index + col) % 2 === 1;
-                const hasBottomTab = row < rows - 1 && (index + row) % 2 === 1;
-                const hasLeftTab = col > 0 && (index + col) % 2 === 0;
+                // Use consistent tab pattern from pre-generated array
+                const pattern = this.tabPattern[row][col];
+                const hasTopTab = pattern.top;
+                const hasRightTab = pattern.right;
+                const hasBottomTab = pattern.bottom;
+                const hasLeftTab = pattern.left;
 
                 // Draw tabs
                 if (hasTopTab) this.drawTab(ctx, 'top', true);
@@ -324,15 +318,17 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                // Add piece number
-                ctx.fillStyle = 'white';
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 1;
-                ctx.font = 'bold 20px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.strokeText((index + 1).toString(), this.pieceWidth/2, this.pieceHeight/2);
-                ctx.fillText((index + 1).toString(), this.pieceWidth/2, this.pieceHeight/2);
+                // Add piece number only if showNumbers is true
+                if (showNumbers) {
+                    ctx.fillStyle = 'white';
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 1;
+                    ctx.font = 'bold 20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.strokeText((index + 1).toString(), this.pieceWidth/2, this.pieceHeight/2);
+                    ctx.fillText((index + 1).toString(), this.pieceWidth/2, this.pieceHeight/2);
+                }
 
                 return {
                     file: `piece${index + 1}.svg`,
@@ -406,12 +402,52 @@
 </svg>`;
             }
 
+            generateTabPattern(cols, rows) {
+                // Generate a consistent 2D array for tab/blank patterns
+                // true = tab (external lobe), false = blank (internal hole)
+                const pattern = [];
+
+                // First, create empty pattern
+                for (let row = 0; row < rows; row++) {
+                    pattern[row] = [];
+                    for (let col = 0; col < cols; col++) {
+                        pattern[row][col] = {
+                            top: null,
+                            right: null,
+                            bottom: null,
+                            left: null
+                        };
+                    }
+                }
+
+                // Now assign tabs/blanks for each edge connection
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const pieceIndex = row * cols + col;
+
+                        // For each edge connection, decide which piece gets the tab
+                        // Horizontal connections (left-right)
+                        if (col < cols - 1) {
+                            const hasTab = (pieceIndex + col) % 2 === 0;
+                            pattern[row][col].right = hasTab;        // This piece gets tab on right
+                            pattern[row][col + 1].left = !hasTab;    // Right piece gets blank on left
+                        }
+
+                        // Vertical connections (top-bottom)
+                        if (row < rows - 1) {
+                            const hasTab = (pieceIndex + row) % 2 === 1;
+                            pattern[row][col].bottom = hasTab;       // This piece gets tab on bottom
+                            pattern[row + 1][col].top = !hasTab;     // Bottom piece gets blank on top
+                        }
+                    }
+                }
+
+                return pattern;
+            }
+
             generateDownloads(pieces, cols, rows) {
                 const outputDiv = document.getElementById('output');
-                const linksDiv = document.getElementById('downloadLinks');
-
-                // Clear previous downloads
-                linksDiv.innerHTML = '';
+                const downloadBtn = document.getElementById('downloadAllBtn');
 
                 // Create puzzle.json
                 const puzzleData = pieces.map(piece => ({
@@ -419,33 +455,39 @@
                     x: piece.x,
                     y: piece.y
                 }));
-
                 const puzzleJSON = JSON.stringify(puzzleData, null, 2);
-                this.createDownloadLink('puzzle.json', puzzleJSON, 'application/json');
 
-                // Create piece SVGs
+                // Create ZIP file
+                const zip = new JSZip();
+
+                // Add puzzle.json to ZIP
+                zip.file('puzzle.json', puzzleJSON);
+
+                // Add all SVG files to ZIP
                 pieces.forEach(piece => {
-                    this.createDownloadLink(piece.file, piece.svgData, 'image/svg+xml');
+                    zip.file(piece.file, piece.svgData);
                 });
 
-                outputDiv.style.display = 'block';
-            }
+                // Set up download button
+                downloadBtn.onclick = async () => {
+                    try {
+                        const blob = await zip.generateAsync({ type: 'blob' });
+                        const url = URL.createObjectURL(blob);
 
-            createDownloadLink(filename, content, mimeType) {
-                const blob = new Blob([content], { type: mimeType });
-                const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'puzzle-files.zip';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
 
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                link.className = 'download-link';
-                link.textContent = filename;
-
-                link.onclick = () => {
-                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                        setTimeout(() => URL.revokeObjectURL(url), 100);
+                    } catch (error) {
+                        this.showError(`Error creating ZIP: ${error.message}`);
+                    }
                 };
 
-                document.getElementById('downloadLinks').appendChild(link);
+                outputDiv.style.display = 'block';
             }
 
             showProgress(message) {
