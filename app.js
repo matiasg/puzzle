@@ -7,12 +7,19 @@ class SimplePuzzleApp {
         this.selectedPiece = null;
         this.zoomLevel = 1; // 1 = 100%
         this.containerCenter = { x: 400, y: 250 }; // Center of 800x500 container
-        this.isShowingSolution = false; // Toggle state
+        this.panOffset = { x: 0, y: 0 }; // Pan offset to keep zoom centered on cursor
+        this.solutionMode = 0; // 0 = normal, 1 = show solution, 2 = show hint (1.5x offset)
         this.initialState = null; // Store initial positions and rotations
         this.init();
     }
 
     init() {
+        // Initialize container size based on window
+        this.updateContainerSize();
+
+        // Listen for window resize
+        window.addEventListener('resize', () => this.updateContainerSize());
+
         // Load button
         const loadBtn = document.getElementById('loadPuzzle');
 
@@ -23,8 +30,14 @@ class SimplePuzzleApp {
         // Rotation buttons
         const rotateLeftBtn = document.getElementById('rotateLeft');
         const rotateRightBtn = document.getElementById('rotateRight');
-        rotateLeftBtn.addEventListener('click', () => this.rotateSelected(-15));
-        rotateRightBtn.addEventListener('click', () => this.rotateSelected(15));
+        rotateLeftBtn.addEventListener('click', (e) => {
+            const degrees = e.shiftKey ? -90 : -15;
+            this.rotateSelected(degrees);
+        });
+        rotateRightBtn.addEventListener('click', (e) => {
+            const degrees = e.shiftKey ? 90 : 15;
+            this.rotateSelected(degrees);
+        });
 
         // Directory input
         const directoryInput = document.getElementById('directoryInput');
@@ -45,8 +58,14 @@ class SimplePuzzleApp {
         // Zoom controls
         const zoomInBtn = document.getElementById('zoomIn');
         const zoomOutBtn = document.getElementById('zoomOut');
-        zoomInBtn.addEventListener('click', () => this.zoom(0.1)); // Zoom in by 10%
-        zoomOutBtn.addEventListener('click', () => this.zoom(-0.1)); // Zoom out by 10%
+        zoomInBtn.addEventListener('click', () => {
+            this.panOffset = { x: 0, y: 0 }; // Reset pan to center
+            this.zoom(0.1);
+        });
+        zoomOutBtn.addEventListener('click', () => {
+            this.panOffset = { x: 0, y: 0 }; // Reset pan to center
+            this.zoom(-0.1);
+        });
 
         // Show solution button
         const showSolutionBtn = document.getElementById('showSolution');
@@ -54,45 +73,110 @@ class SimplePuzzleApp {
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
+        // Mouse wheel zoom on puzzle container
+        const container = document.getElementById('puzzleContainer');
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            // Get mouse position relative to container
+            const rect = container.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Calculate zoom delta (scrolling down zooms out, up zooms in)
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            this.zoom(delta, mouseX, mouseY);
+        }, { passive: false });
+    }
+
+    updateContainerSize() {
+        const container = document.getElementById('puzzleContainer');
+        if (!container) return;
+
+        // Calculate available space (subtracting margins and header space)
+        const maxWidth = window.innerWidth - 40; // 20px margin on each side
+        const maxHeight = window.innerHeight - 200; // Space for header, controls, status
+
+        // Use smaller of default size (1000x1000) or available space
+        const width = Math.min(1000, maxWidth);
+        const height = Math.min(1000, maxHeight);
+
+        // Actually set the container size
+        container.style.width = width + 'px';
+        container.style.height = height + 'px';
+
+        // Update container center
+        this.containerCenter = { x: width / 2, y: height / 2 };
+
+        // If pan offset is at initial position, reset it
+        if (this.panOffset.x === 0 && this.panOffset.y === 0) {
+            // panOffset stays at 0,0 (centered)
+        }
+
+        // Update all pieces if they exist
+        if (this.pieces.length > 0) {
+            for (const piece of this.pieces) {
+                if (piece && piece.element) {
+                    this.updatePieceZoom(piece);
+                }
+            }
+        }
+
+        console.log(`Container size updated: ${Math.round(width)}x${Math.round(height)}, center: (${Math.round(this.containerCenter.x)}, ${Math.round(this.containerCenter.y)})`);
     }
 
     handleKeyDown(e) {
         if (!this.selectedPiece) return;
 
-        const moveDistance = 1 * this.zoomLevel;
-        const rotationDegrees = 15;
+        // Check if Ctrl is pressed for rotation
+        if (e.ctrlKey) {
+            // Rotation mode
+            const rotationDegrees = e.shiftKey ? 90 : 15;
 
-        switch(e.key) {
-            case 'ArrowUp':
-                e.preventDefault();
-                this.selectedPiece.currentY -= moveDistance;
-                this.updatePieceZoom(this.selectedPiece);
-                break;
-            case 'ArrowDown':
-                e.preventDefault();
-                this.selectedPiece.currentY += moveDistance;
-                this.updatePieceZoom(this.selectedPiece);
-                break;
-            case 'ArrowLeft':
-                e.preventDefault();
-                if (e.shiftKey) {
+            switch(e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
                     this.selectedPiece.rotation -= rotationDegrees;
                     this.updatePieceZoom(this.selectedPiece);
-                } else {
-                    this.selectedPiece.currentX -= moveDistance;
-                    this.updatePieceZoom(this.selectedPiece);
-                }
-                break;
-            case 'ArrowRight':
-                e.preventDefault();
-                if (e.shiftKey) {
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
                     this.selectedPiece.rotation += rotationDegrees;
                     this.updatePieceZoom(this.selectedPiece);
-                } else {
+                    break;
+                case 'ArrowUp':
+                case 'ArrowDown':
+                    e.preventDefault();
+                    // In rotation mode, up/down could also rotate (optional)
+                    break;
+            }
+        } else {
+            // Movement mode
+            const moveDistance = (e.shiftKey ? 10 : 1) * this.zoomLevel;
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this.selectedPiece.currentY -= moveDistance;
+                    this.updatePieceZoom(this.selectedPiece);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this.selectedPiece.currentY += moveDistance;
+                    this.updatePieceZoom(this.selectedPiece);
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    this.selectedPiece.currentX -= moveDistance;
+                    this.updatePieceZoom(this.selectedPiece);
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
                     this.selectedPiece.currentX += moveDistance;
                     this.updatePieceZoom(this.selectedPiece);
-                }
-                break;
+                    break;
+            }
         }
     }
 
@@ -381,8 +465,18 @@ class SimplePuzzleApp {
     toggleShowSolution() {
         const showBtn = document.getElementById('showSolution');
 
-        if (!this.isShowingSolution) {
-            // Store current state before showing solution
+        // Cycle through modes: 0 -> 2 -> 1 -> 0 (hint -> show -> reset)
+        // After mode 2 comes mode 1, then back to 0
+        if (this.solutionMode === 0) {
+            this.solutionMode = 2; // Go to hint first
+        } else if (this.solutionMode === 2) {
+            this.solutionMode = 1; // Then show solution
+        } else {
+            this.solutionMode = 0; // Then reset
+        }
+
+        if (this.solutionMode === 2) {
+            // Store current state before showing hint
             this.preSolutionState = this.pieces.map(piece => ({
                 file: piece.file,
                 currentX: piece.currentX,
@@ -391,6 +485,22 @@ class SimplePuzzleApp {
             }));
             console.log('Pre-solution state stored:', this.preSolutionState);
 
+            // Show hint: solution with 1.5x offset
+            console.log('Showing hint (1.5x offset)...');
+            this.pieces.forEach(piece => {
+                piece.currentX = piece.targetX * 1.5;
+                piece.currentY = piece.targetY * 1.5;
+                piece.rotation = 0; // Reset rotation to solved state
+                this.updatePieceZoom(piece);
+            });
+
+            showBtn.textContent = 'Show Solution';
+            showBtn.style.backgroundColor = '#fd7e14'; // Orange color
+
+            document.getElementById('status').textContent = 'Hint shown - pieces at 1.5x offset!';
+            document.getElementById('status').style.color = 'orange';
+
+        } else if (this.solutionMode === 1) {
             // Show the solution: move pieces to target positions
             console.log('Showing solution...');
             this.pieces.forEach(piece => {
@@ -400,16 +510,15 @@ class SimplePuzzleApp {
                 this.updatePieceZoom(piece);
             });
 
-            showBtn.textContent = 'Hide Solution';
+            showBtn.textContent = 'Reset';
             showBtn.style.backgroundColor = '#dc3545'; // Red color
-            this.isShowingSolution = true;
 
             document.getElementById('status').textContent = 'Solution shown - puzzle solved!';
             document.getElementById('status').style.color = 'green';
 
         } else {
-            // Hide the solution: restore positions from when solution was shown
-            console.log('Hiding solution, restoring pre-solution state...');
+            // Reset to normal: restore positions from when solution was shown
+            console.log('Resetting to normal, restoring pre-solution state...');
             if (this.preSolutionState) {
                 this.pieces.forEach(piece => {
                     const preSolutionState = this.preSolutionState.find(state => state.file === piece.file);
@@ -422,9 +531,8 @@ class SimplePuzzleApp {
                 });
             }
 
-            showBtn.textContent = 'Show Solution';
+            showBtn.textContent = 'Show Hint';
             showBtn.style.backgroundColor = '#007bff'; // Blue color
-            this.isShowingSolution = false;
 
             document.getElementById('status').textContent = 'Solution hidden - continue playing!';
             document.getElementById('status').style.color = 'black';
@@ -437,12 +545,30 @@ class SimplePuzzleApp {
         this.updatePieceZoom(this.selectedPiece);
     }
 
-    zoom(delta) {
+    zoom(delta, mouseX = null, mouseY = null) {
+        const oldZoom = this.zoomLevel;
+
         // Calculate new zoom level (between 0.2 and 10.0)
         const newZoom = Math.max(0.2, Math.min(10.0, this.zoomLevel + delta));
 
         if (newZoom !== this.zoomLevel) {
-            this.zoomLevel = newZoom;
+            // If mouse position is provided, adjust pan offset to keep cursor stationary
+            if (mouseX !== null && mouseY !== null) {
+                // Find the world point under the mouse cursor before zooming
+                const worldX = (mouseX - this.containerCenter.x - this.panOffset.x) / oldZoom + this.containerCenter.x;
+                const worldY = (mouseY - this.containerCenter.y - this.panOffset.y) / oldZoom + this.containerCenter.y;
+
+                // Update zoom level
+                this.zoomLevel = newZoom;
+
+                // Calculate new pan offset so that the same world point remains under the cursor
+                // mouseX = containerCenter.x + newPanOffset.x + (worldX - containerCenter.x) * newZoom
+                // newPanOffset.x = mouseX - containerCenter.x - (worldX - containerCenter.x) * newZoom
+                this.panOffset.x = mouseX - this.containerCenter.x - (worldX - this.containerCenter.x) * this.zoomLevel;
+                this.panOffset.y = mouseY - this.containerCenter.y - (worldY - this.containerCenter.y) * this.zoomLevel;
+            } else {
+                this.zoomLevel = newZoom;
+            }
 
             // Update zoom level display
             document.getElementById('zoomLevel').textContent = Math.round(this.zoomLevel * 100) + '%';
@@ -454,7 +580,7 @@ class SimplePuzzleApp {
                 }
             }
 
-            console.log(`Zoom level: ${Math.round(this.zoomLevel * 100)}%`);
+            console.log(`Zoom level: ${Math.round(this.zoomLevel * 100)}%, pan offset: (${Math.round(this.panOffset.x)}, ${Math.round(this.panOffset.y)})`);
         }
     }
 
@@ -466,9 +592,9 @@ class SimplePuzzleApp {
 
         const scale = this.zoomLevel;
 
-        // Calculate display position (scaled from center)
-        const displayX = this.containerCenter.x + (piece.currentX - this.containerCenter.x) * scale;
-        const displayY = this.containerCenter.y + (piece.currentY - this.containerCenter.y) * scale;
+        // Calculate display position with pan offset
+        const displayX = this.containerCenter.x + this.panOffset.x + (piece.currentX - this.containerCenter.x) * scale;
+        const displayY = this.containerCenter.y + this.panOffset.y + (piece.currentY - this.containerCenter.y) * scale;
 
         // Update element position
         piece.element.style.left = displayX + 'px';
