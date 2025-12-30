@@ -554,18 +554,16 @@ class SimplePuzzleApp {
         if (newZoom !== this.zoomLevel) {
             // If mouse position is provided, adjust pan offset to keep cursor stationary
             if (mouseX !== null && mouseY !== null) {
-                // Find the world point under the mouse cursor before zooming
-                const worldX = (mouseX - this.containerCenter.x - this.panOffset.x) / oldZoom + this.containerCenter.x;
-                const worldY = (mouseY - this.containerCenter.y - this.panOffset.y) / oldZoom + this.containerCenter.y;
+                // t(p) = z * p + o
+                // nt(p) = nz * p + no
+                // t(m) = nt(m) => z * m + o = nz * m + no
+                // no = z * m + o - nz * m = (z - nz) * m + o
+
+                this.panOffset.x = (oldZoom - newZoom) * mouseX + this.panOffset.x;
+                this.panOffset.y = (oldZoom - newZoom) * mouseY + this.panOffset.y;
 
                 // Update zoom level
                 this.zoomLevel = newZoom;
-
-                // Calculate new pan offset so that the same world point remains under the cursor
-                // mouseX = containerCenter.x + newPanOffset.x + (worldX - containerCenter.x) * newZoom
-                // newPanOffset.x = mouseX - containerCenter.x - (worldX - containerCenter.x) * newZoom
-                this.panOffset.x = mouseX - this.containerCenter.x - (worldX - this.containerCenter.x) * this.zoomLevel;
-                this.panOffset.y = mouseY - this.containerCenter.y - (worldY - this.containerCenter.y) * this.zoomLevel;
             } else {
                 this.zoomLevel = newZoom;
             }
@@ -592,9 +590,13 @@ class SimplePuzzleApp {
 
         const scale = this.zoomLevel;
 
-        // Calculate display position with pan offset
-        const displayX = this.containerCenter.x + this.panOffset.x + (piece.currentX - this.containerCenter.x) * scale;
-        const displayY = this.containerCenter.y + this.panOffset.y + (piece.currentY - this.containerCenter.y) * scale;
+        // t(p) = z * p + o
+        // nt(p) = nz * p + no
+        // t(m) = nt(m) => z * m + o = nz * m + no
+        // no = z * m + o - nz * m = (z - nz) * m + o
+
+        const displayX = this.zoomLevel * piece.currentX + this.panOffset.x;
+        const displayY = this.zoomLevel * piece.currentY + this.panOffset.y;
 
         // Update element position
         piece.element.style.left = displayX + 'px';
@@ -602,7 +604,7 @@ class SimplePuzzleApp {
 
         // Apply transform with scale
         piece.element.style.transform = `rotate(${piece.rotation}deg) scale(${scale})`;
-        piece.element.style.transformOrigin = 'center center';
+        piece.element.style.transformOrigin = 'left top';
     }
 
     checkSolution() {
